@@ -44,7 +44,7 @@ const todoSchema = z.object({
   completed: z.boolean().optional(),
 });
 
-app.get("/todos", async (req, res) => {
+app.get("/api/todos", async (req, res) => {
   if (!req.session.id) {
     return res.json({ ok: true, result: [] });
   }
@@ -53,7 +53,7 @@ app.get("/todos", async (req, res) => {
   res.json({ ok: true, result: todos });
 });
 
-app.post("/todos", async (req, res) => {
+app.post("/api/todos", async (req, res) => {
   try {
     const todoData = todoSchema.parse(req.body);
 
@@ -69,7 +69,7 @@ app.post("/todos", async (req, res) => {
   }
 });
 
-app.patch("/todos/:id", async (req, res) => {
+app.patch("/api/todos/:id", async (req, res) => {
   try {
     const todoData = todoSchema.partial().parse(req.body); // Allow partial updates
 
@@ -89,7 +89,7 @@ app.patch("/todos/:id", async (req, res) => {
   }
 });
 
-app.delete("/todos/:id", async (req, res) => {
+app.delete("/api/todos/:id", async (req, res) => {
   const { id } = req.params;
 
   const todo = await Todo.findOneAndDelete({

@@ -6,7 +6,7 @@ import bodyParser from "body-parser";
 import connectMongoDBSession from "connect-mongodb-session";
 import { z } from "zod";
 import nodeCron from "node-cron";
-import Todo from "./models/todo.js";
+import { Todo } from "./models/todo.js";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 
@@ -18,12 +18,14 @@ mongoose.connect(DATABASE_URL);
 
 const app = express();
 const HOSTNAME = IS_DEV.trim() === "true" ? "localhost" : "0.0.0.0";
-const PORT = 3000;
+const PORT = 3010;
 
 const MongoDBStore = connectMongoDBSession(session);
 const store = new MongoDBStore({
   uri: DATABASE_URL,
   collection: "sessions",
+}).on("error", function (error) {
+  console.error(error);
 });
 
 const options = {
@@ -40,14 +42,10 @@ const options = {
       },
     ],
   },
-  apis: ["./src/index.js"], // Path to the API docs
+  apis: ["./src/index.js"],
 };
 
 const specs = swaggerJsdoc(options);
-
-store.on("error", function (error) {
-  console.error(error);
-});
 
 app.use(bodyParser.json());
 app.use(
@@ -60,19 +58,30 @@ app.use(
   }),
 );
 
-const todoSchema = z.object({
-  text: z.string().min(1, "Text is required"),
+const createTodoDtoSchema = z.object({
+  text: z.string().min(1, "Text cannot be empty"),
   completed: z.boolean().optional(),
 });
+
+const todoDtoSchema = z.object({
+  id: z.string().uuid(),
+  text: z.string().min(1),
+  completed: z.boolean().optional(),
+});
+
+const patchTodoDtoSchema = z
+  .object({
+    text: z.string().min(1, "Text cannot be empty"),
+    completed: z.boolean(),
+  })
+  .partial();
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     Todo:
+ *     TodoDto:
  *       type: object
- *       required:
- *         - text
  *       properties:
  *         id:
  *           type: string
@@ -83,14 +92,36 @@ const todoSchema = z.object({
  *         completed:
  *           type: boolean
  *           description: The completion status of the todo
- *         sessionId:
- *           type: string
- *           description: The session id associated with the todo
  *       example:
  *         id: d5fE_asz
  *         text: Buy groceries
  *         completed: false
- *         sessionId: 605c5ef3e2a0b6b99c0f9b15
+ *     CreateTodoDto:
+ *       type: object
+ *       required:
+ *         - text
+ *       properties:
+ *         text:
+ *           type: string
+ *           description: The text of the todo
+ *         completed:
+ *           type: boolean
+ *           description: The completion status of the todo
+ *       example:
+ *         text: Buy groceries
+ *         completed: false
+ *     PatchTodoDto:
+ *       type: object
+ *       properties:
+ *         text:
+ *           type: string
+ *           description: The text of the todo
+ *         completed:
+ *           type: boolean
+ *           description: The completion status of the todo
+ *       example:
+ *         text: Buy groceries
+ *         completed: false
  */
 
 /**
@@ -112,9 +143,16 @@ const todoSchema = z.object({
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Todo'
+ *               type: object
+ *               properties:
+ *                  ok:
+ *                    type: boolean
+ *                    description: Boolean status of the response
+ *                    example: true
+ *                  result:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/TodoDto'
  */
 app.get("/api/todos", async (req, res) => {
   if (!req.session.id) {
@@ -122,7 +160,10 @@ app.get("/api/todos", async (req, res) => {
   }
 
   const todos = await Todo.find({ sessionId: req.session.id });
-  res.json({ ok: true, result: todos });
+  res.json({
+    ok: true,
+    result: todos.map((todo) => todoDtoSchema.parse(todo)),
+  });
 });
 
 /**
@@ -136,20 +177,27 @@ app.get("/api/todos", async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Todo'
+ *             $ref: '#/components/schemas/CreateTodoDto'
  *     responses:
  *       200:
  *         description: The created todo.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Todo'
+ *               type: object
+ *               properties:
+ *                  ok:
+ *                    type: boolean
+ *                    description: Boolean status of the response
+ *                    example: true
+ *                  result:
+ *                    $ref: '#/components/schemas/TodoDto'
  *       400:
  *         description: Invalid input
  */
 app.post("/api/todos", async (req, res) => {
   try {
-    const todoData = todoSchema.parse(req.body);
+    const todoData = createTodoDtoSchema.parse(req.body);
 
     const todo = new Todo({
       ...todoData,
@@ -157,7 +205,7 @@ app.post("/api/todos", async (req, res) => {
     });
 
     await todo.save();
-    res.json({ ok: true, result: todo });
+    res.json({ ok: true, result: todoDtoSchema.parse(todo) });
   } catch (e) {
     res.status(400).json({ ok: false, error: e.errors });
   }
@@ -181,14 +229,23 @@ app.post("/api/todos", async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Todo'
+ *             $ref: '#/components/schemas/PatchTodoDto'
  *     responses:
  *       200:
  *         description: The updated todo
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Todo'
+ *               type: object
+ *               properties:
+ *                  ok:
+ *                    type: boolean
+ *                    description: Boolean status of the response
+ *                    example: true
+ *                  result:
+ *                    type: array
+ *                    items:
+ *                      $ref: '#/components/schemas/TodoDto'
  *       400:
  *         description: Invalid input
  *       404:
@@ -196,7 +253,7 @@ app.post("/api/todos", async (req, res) => {
  */
 app.patch("/api/todos/:id", async (req, res) => {
   try {
-    const todoData = todoSchema.partial().parse(req.body); // Allow partial updates
+    const todoData = patchTodoDtoSchema.parse(req.body);
 
     const todo = await Todo.findOneAndUpdate(
       { _id: req.params.id, sessionId: req.sessionID },
@@ -230,6 +287,15 @@ app.patch("/api/todos/:id", async (req, res) => {
  *     responses:
  *       200:
  *         description: The todo was deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                  ok:
+ *                    type: boolean
+ *                    description: Boolean status of the response
+ *                    example: true
  *       404:
  *         description: Todo not found
  */
@@ -245,7 +311,7 @@ app.delete("/api/todos/:id", async (req, res) => {
     return res.status(404).send({ ok: false, error: "not_found" });
   }
 
-  res.json({ ok: true, result: null });
+  res.json({ ok: true });
 });
 
 app.use("/api/documentation", swaggerUi.serve, swaggerUi.setup(specs));
@@ -277,7 +343,7 @@ nodeCron.schedule("0 * * * *", async () => {
 });
 
 function getAllSessions() {
-  return Promise((res, rej) => {
+  return new Promise((res, rej) => {
     store.all((err, obj) => (err ? rej(err) : res(obj)));
   });
 }

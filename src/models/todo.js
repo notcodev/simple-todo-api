@@ -6,6 +6,4 @@ const TodoSchema = new mongoose.Schema({
   sessionId: { type: String, required: true },
 });
 
-const Todo = mongoose.model("Todo", TodoSchema);
-
-export default Todo;
+export const Todo = mongoose.model("Todo", TodoSchema, "todos");

@@ -64,7 +64,7 @@ const createTodoDtoSchema = z.object({
 });
 
 const todoDtoSchema = z.object({
-  id: z.string().uuid(),
+  _id: z.coerce.string(),
   text: z.string().min(1),
   completed: z.boolean().optional(),
 });
@@ -83,7 +83,7 @@ const patchTodoDtoSchema = z
  *     TodoDto:
  *       type: object
  *       properties:
- *         id:
+ *         _id:
  *           type: string
  *           description: The auto-generated id of the todo
  *         text:
@@ -93,7 +93,7 @@ const patchTodoDtoSchema = z
  *           type: boolean
  *           description: The completion status of the todo
  *       example:
- *         id: d5fE_asz
+ *         _id: d5fE_asz
  *         text: Buy groceries
  *         completed: false
  *     CreateTodoDto:

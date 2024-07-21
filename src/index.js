@@ -24,7 +24,9 @@ const MongoDBStore = connectMongoDBSession(session);
 const store = new MongoDBStore({
   uri: DATABASE_URL,
   collection: "sessions",
-}).on("error", function (error) {
+});
+
+store.on("error", function (error) {
   console.error(error);
 });
 

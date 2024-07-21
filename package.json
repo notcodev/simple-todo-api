@@ -5,8 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start:dev": "IS_DEV=true nodemon -w ./src src/index.js",
-    "start:prod": "IS_DEV=false node src/index.js"
+    "start:dev:unix": "IS_DEV=true nodemon -w ./src src/index.js",
+    "start:prod:unix": "IS_DEV=false node src/index.js",
+    "start:dev:windows": "set IS_DEV=true && nodemon src/index.js",
+    "start:prod:windows": "set IS_DEV=false && node src/index.js"
   },
   "keywords": [],
   "author": "",

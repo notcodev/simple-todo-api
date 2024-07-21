@@ -1,18 +1,33 @@
 {
   "name": "todo-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A simple RESTful API for managing a to-do list with anonymous sessions. The API supports creating, reading, updating, and deleting to-do items, and includes a cron job to clean up expired sessions and associated to-dos.",
+  "module": "src/index.js",
   "type": "module",
+  "packageManager": "pnpm@9.2.0",
+  "repository": {
+    "url": "https://github.com/nothugofsea/simple-todo-api.git",
+    "type": "git"
+  },
+  "homepage": "https://github.com/nothugofsea/simple-todo-api",
+  "bugs": "https://github.com/nothugofsea/simple-todo-api/issues",
   "scripts": {
     "start:dev:unix": "IS_DEV=true nodemon -w ./src src/index.js",
     "start:prod:unix": "IS_DEV=false node src/index.js",
     "start:dev:windows": "set IS_DEV=true && nodemon src/index.js",
     "start:prod:windows": "set IS_DEV=false && node src/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "javascript",
+    "api",
+    "todo",
+    "expressjs"
+  ],
+  "author": {
+    "name": "nothugofsea",
+    "url": "https://github.com/nothugofsea"
+  },
+  "license": "MIT",
   "dependencies": {
     "body-parser": "^1.20.2",
     "connect-mongodb-session": "^5.0.0",

@@ -18,7 +18,7 @@ mongoose.connect(DATABASE_URL);
 
 const app = express();
 const HOSTNAME = IS_DEV.trim() === "true" ? "localhost" : "0.0.0.0";
-const PORT = 3010;
+const PORT = 3000;
 
 const MongoDBStore = connectMongoDBSession(session);
 const store = new MongoDBStore({
